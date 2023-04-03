@@ -1,0 +1,29 @@
+# Enable edge encryption for all routes that do not explicitly configure
+# TLS.
+apiVersion: mutations.gatekeeper.sh/v1
+kind: Assign
+metadata:
+  name: routes-use-tls
+spec:
+  applyTo:
+    - groups:
+        - route.openshift.io
+      kinds:
+        - Route
+      versions:
+        - v1
+  match:
+    scope: Namespaced
+
+    # Only apply this policy in projects created through the NERC
+    # onboarding system.
+    namespaceSelector:
+      matchLabels:
+        nerc.mghpcc.org/project: "true"
+  location: spec.tls.termination
+  parameters:
+    pathTests:
+      - subPath: spec.tls.termination
+        condition: MustNotExist
+    assign:
+      value: edge
