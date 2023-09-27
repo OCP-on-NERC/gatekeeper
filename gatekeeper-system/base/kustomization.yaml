@@ -9,6 +9,11 @@ resources:
 # [1]: https://open-policy-agent.github.io/gatekeeper/website/docs/vendor-specific#running-on-openshift-4x
 patches:
   - target:
+      kind: Deployment
+    patch: |
+      - op: remove
+        path: /spec/template/spec/containers/0/securityContext/runAsUser
+  - target:
       kind: Role
       name: gatekeeper-manager-role
     patch: |
