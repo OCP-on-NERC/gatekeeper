@@ -2,17 +2,12 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.12.0-rc.0/deploy/gatekeeper.yaml
+  - https://raw.githubusercontent.com/open-policy-agent/gatekeeper/v3.13.0/deploy/gatekeeper.yaml
 
 # Patches per [1] to grant the necessary permissions for running on OpenShift.
 #
 # [1]: https://open-policy-agent.github.io/gatekeeper/website/docs/vendor-specific#running-on-openshift-4x
 patches:
-  - target:
-      kind: Deployment
-    patch: |
-      - op: remove
-        path: /spec/template/spec/containers/0/securityContext/seccompProfile
   - target:
       kind: Role
       name: gatekeeper-manager-role
