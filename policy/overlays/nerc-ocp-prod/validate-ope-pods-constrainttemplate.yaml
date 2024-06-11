@@ -1,0 +1,52 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredopepod
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredOPEPod
+      validation:
+        openAPIV3Schema:
+          properties:
+            image:
+              type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package K8sRequiredOPEPod
+
+        # Verify running class image
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          env_var := container.env[_]
+          env_var.name == "JUPYTER_IMAGE"
+          provided := env_var.value
+          required := input.parameters.image
+          provided != required
+          msg := sprintf("Jupyter image %v is not allowed. Must use %v.", [provided, required])
+        }
+
+        # Verify XSmall resource size
+        violation[{"msg": msg}] {
+          requiredCpuLimit := "1"
+          requiredMemoryLimit := "4Gi"
+          requiredCpuRequest := "100m"
+          requiredMemoryRequest := "1Gi"
+
+          container := input.review.object.spec.containers[0]
+
+
+          cpuLimit := container.resources.limits.cpu
+          memLimit := container.resources.limits.memory
+          cpuRequest := container.resources.requests.cpu
+          memRequest := container.resources.requests.memory
+
+          requiredCpuLimit != cpuLimit
+          requiredMemoryLimit != memLimit
+          requiredCpuRequest != cpuRequest
+          requiredMemoryRequest != memRequest
+
+          msg := "Selected wrong container size. You must use XSmall container size"
+        }

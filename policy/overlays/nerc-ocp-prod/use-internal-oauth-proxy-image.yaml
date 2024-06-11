@@ -1,0 +1,21 @@
+apiVersion: mutations.gatekeeper.sh/v1alpha1
+kind: AssignImage
+metadata:
+  name: use-internal-oauth-proxy-image
+spec:
+  applyTo:
+  - groups: [""]
+    kinds: ["Pod"]
+    versions: ["v1"]
+  location: "spec.containers[name:oauth-proxy].image"
+  parameters:
+    assignDomain: "image-registry.openshift-image-registry.svc:5000"
+    assignPath: "redhat-ods-applications/oauth-proxy"
+    assignTag: ":latest"
+  match:
+    source: "All"
+    scope: Namespaced
+    kinds:
+    - apiGroups: ["*"]
+      kinds: ["Pod"]
+    namespaces: ["rhods-notebooks", "ope-rhods-testing-1fef2f"]
