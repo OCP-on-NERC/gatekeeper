@@ -18,5 +18,4 @@ spec:
     kinds:
     - apiGroups: ["*"]
       kinds: ["Pod"]
-    namespaces: ["rhods-notebooks"]
-    name: jupyter-nb*
+    namespaces: ["rhods-notebooks", "ope-rhods-testing-1fef2f"]
