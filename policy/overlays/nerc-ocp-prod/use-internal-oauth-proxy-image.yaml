@@ -12,10 +12,13 @@ spec:
     assignDomain: "image-registry.openshift-image-registry.svc:5000"
     assignPath: "redhat-ods-applications/oauth-proxy"
     assignTag: ":latest"
+    pathTests:
+    - subPath: "spec.containers[name:oauth-proxy].image"
+      condition: MustExist
   match:
     source: "All"
     scope: Namespaced
     kinds:
     - apiGroups: ["*"]
       kinds: ["Pod"]
-    namespaces: ["rhods-notebooks", "ope-rhods-testing-1fef2f"]
+    namespaces: ["rhods-notebooks"]
