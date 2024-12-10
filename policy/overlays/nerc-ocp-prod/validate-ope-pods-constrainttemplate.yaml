@@ -1,0 +1,99 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredopepod
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredOPEPod
+      validation:
+        openAPIV3Schema:
+          properties:
+            image:
+              type: string
+            image_name:
+              type: string
+            cpuLimit:
+              type: string
+            memLimit:
+              type: string
+            cpuRequest:
+              type: string
+            memRequest:
+              type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package K8sRequiredOPEPod
+
+        # Function to determine the resource size
+        resource_size(cpuLimit, memLimit, cpuRequest, memRequest) = size {
+          cpuLimit == "1"
+          memLimit == "4Gi"
+          cpuRequest == "100m"
+          memRequest == "1Gi"
+          size := "X Small"
+        } else = size {
+          cpuLimit == "2"
+          memLimit == "8Gi"
+          cpuRequest == "1"
+          memRequest == "8Gi"
+          size := "Small"
+        } else = size {
+          cpuLimit == "6"
+          memLimit == "24Gi"
+          cpuRequest == "3"
+          memRequest == "24Gi"
+          size := "Medium"
+        } else = size {
+          cpuLimit == "14"
+          memLimit == "56Gi"
+          cpuRequest == "7"
+          memRequest == "56Gi"
+          size := "Large"
+        } else = size {
+          cpuLimit == "30"
+          memLimit == "120Gi"
+          cpuRequest == "15"
+          memRequest == "120Gi"
+          size := "X Large"
+        }
+
+
+        # Verify class image
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          env_var := container.env[_]
+          env_var.name == "JUPYTER_IMAGE"
+          provided := env_var.value
+          required := input.parameters.image
+          provided != required
+
+          size := resource_size(input.parameters.cpuLimit, input.parameters.memLimit, input.parameters.cpuRequest, input.parameters.memRequest)
+          msg := sprintf("Must use %s image with %s resource size", [input.parameters.image_name, size])
+        }
+
+        # Verify resource size
+        violation[{"msg": msg}] {
+          requiredCpuLimit := input.parameters.cpuLimit
+          requiredMemoryLimit := input.parameters.memLimit
+          requiredCpuRequest := input.parameters.cpuRequest
+          requiredMemoryRequest := input.parameters.memRequest
+
+          container := input.review.object.spec.containers[0]
+
+
+          cpuLimit := container.resources.limits.cpu
+          memLimit := container.resources.limits.memory
+          cpuRequest := container.resources.requests.cpu
+          memRequest := container.resources.requests.memory
+
+          requiredCpuLimit != cpuLimit
+          requiredMemoryLimit != memLimit
+          requiredCpuRequest != cpuRequest
+          requiredMemoryRequest != memRequest
+
+          size := resource_size(input.parameters.cpuLimit, input.parameters.memLimit, input.parameters.cpuRequest, input.parameters.memRequest)
+          msg := sprintf("Must use %s image with %s resource size", [input.parameters.image_name, size])
+        }
