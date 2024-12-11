@@ -1,0 +1,20 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredOPEPod
+metadata:
+  name: validate-ope-pods
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces: ["rhods-notebooks"]
+    labelSelector:
+      matchLabels:
+        nerc.mghpcc.org/class: fake_class
+  parameters:
+    image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/ucsls-f24:latest"
+    image_name: "ucsls-F24"
+    cpuLimit: "2"
+    memLimit: "8Gi"
+    cpuRequest: "1"
+    memRequest: "8Gi"
