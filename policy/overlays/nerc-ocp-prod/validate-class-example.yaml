@@ -12,6 +12,9 @@ spec:
       matchLabels:
         nerc.mghpcc.org/class: fake_class
   parameters:
-    image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/ucsls-f24:latest"
-    image_name: "ucsls-F24"
-    resource_size: "Small"
+    allowed_images:
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/ucsls-f24:latest"
+        name: "ucsls-F24"
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/base-ope-image:latest"
+        name: "Base OPE Image"
+    resource_size: "X Small"

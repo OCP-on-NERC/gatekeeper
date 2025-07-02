@@ -10,10 +10,16 @@ spec:
       validation:
         openAPIV3Schema:
           properties:
-            image:
-              type: string
-            image_name:
-              type: string
+            allowed_images:
+              type: array
+              items:
+                type: object
+                properties:
+                  image:
+                    type: string
+                  name:
+                    type: string
+                required: ["image", "name"]
             resource_size:
               type: string
               enum: ["X Small", "Small", "Medium", "Large", "X Large"]
@@ -65,16 +71,27 @@ spec:
           }
         }
 
+        # Check if the provided image is in the allowed list
+        is_allowed_image(provided) {
+          allowed := input.parameters.allowed_images[_]
+          provided == allowed.image
+        }
+
+        # Get allowed image names for error message
+        get_allowed_image_names = names {
+          names := concat(", ", [img.name | img := input.parameters.allowed_images[_]])
+        }
+
         # Verify class image
         violation[{"msg": msg}] {
           container := input.review.object.spec.containers[_]
           env_var := container.env[_]
           env_var.name == "JUPYTER_IMAGE"
           provided := env_var.value
-          required := input.parameters.image
-          provided != required
+          not is_allowed_image(provided)
 
-          msg := sprintf("Must use %s image with %s resource size", [input.parameters.image_name, input.parameters.resource_size])
+          allowed_names := get_allowed_image_names
+          msg := sprintf("Must use one of these images: [%s] with %s resource size", [allowed_names, input.parameters.resource_size])
         }
 
         # Verify resource size
@@ -96,5 +113,6 @@ spec:
             memRequest != resource_values.memRequest
           ])
 
-          msg := sprintf("Must use %s image with %s resource size", [input.parameters.image_name, size])
+          allowed_names := get_allowed_image_names
+          msg := sprintf("Must use one of these images: [%s] with %s resource size", [allowed_names, size])
         }
