@@ -14,52 +14,56 @@ spec:
               type: string
             image_name:
               type: string
-            cpuLimit:
+            resource_size:
               type: string
-            memLimit:
-              type: string
-            cpuRequest:
-              type: string
-            memRequest:
-              type: string
+              enum: ["X Small", "Small", "Medium", "Large", "X Large"]
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
         package K8sRequiredOPEPod
 
-        # Function to determine the resource size
-        resource_size(cpuLimit, memLimit, cpuRequest, memRequest) = size {
-          cpuLimit == "1"
-          memLimit == "4Gi"
-          cpuRequest == "100m"
-          memRequest == "1Gi"
-          size := "X Small"
-        } else = size {
-          cpuLimit == "2"
-          memLimit == "8Gi"
-          cpuRequest == "1"
-          memRequest == "8Gi"
-          size := "Small"
-        } else = size {
-          cpuLimit == "6"
-          memLimit == "24Gi"
-          cpuRequest == "3"
-          memRequest == "24Gi"
-          size := "Medium"
-        } else = size {
-          cpuLimit == "14"
-          memLimit == "56Gi"
-          cpuRequest == "7"
-          memRequest == "56Gi"
-          size := "Large"
-        } else = size {
-          cpuLimit == "30"
-          memLimit == "120Gi"
-          cpuRequest == "15"
-          memRequest == "120Gi"
-          size := "X Large"
+        # Function to get resource values based on size
+        get_resource_values(size) = values {
+          size == "X Small"
+          values := {
+            "cpuLimit": "1",
+            "memLimit": "4Gi",
+            "cpuRequest": "100m",
+            "memRequest": "1Gi"
+          }
+        } else = values {
+          size == "Small"
+          values := {
+            "cpuLimit": "2",
+            "memLimit": "8Gi",
+            "cpuRequest": "1",
+            "memRequest": "8Gi"
+          }
+        } else = values {
+          size == "Medium"
+          values := {
+            "cpuLimit": "6",
+            "memLimit": "24Gi",
+            "cpuRequest": "3",
+            "memRequest": "24Gi"
+          }
+        } else = values {
+          size == "Large"
+          values := {
+            "cpuLimit": "14",
+            "memLimit": "56Gi",
+            "cpuRequest": "7",
+            "memRequest": "56Gi"
+          }
+        } else = values {
+          size == "X Large"
+          values := {
+            "cpuLimit": "30",
+            "memLimit": "120Gi",
+            "cpuRequest": "15",
+            "memRequest": "120Gi"
+          }
         }
-
 
         # Verify class image
         violation[{"msg": msg}] {
@@ -70,30 +74,27 @@ spec:
           required := input.parameters.image
           provided != required
 
-          size := resource_size(input.parameters.cpuLimit, input.parameters.memLimit, input.parameters.cpuRequest, input.parameters.memRequest)
-          msg := sprintf("Must use %s image with %s resource size", [input.parameters.image_name, size])
+          msg := sprintf("Must use %s image with %s resource size", [input.parameters.image_name, input.parameters.resource_size])
         }
 
         # Verify resource size
         violation[{"msg": msg}] {
-          requiredCpuLimit := input.parameters.cpuLimit
-          requiredMemoryLimit := input.parameters.memLimit
-          requiredCpuRequest := input.parameters.cpuRequest
-          requiredMemoryRequest := input.parameters.memRequest
+          size := input.parameters.resource_size
+          resource_values := get_resource_values(size)
 
           container := input.review.object.spec.containers[0]
-
 
           cpuLimit := container.resources.limits.cpu
           memLimit := container.resources.limits.memory
           cpuRequest := container.resources.requests.cpu
           memRequest := container.resources.requests.memory
 
-          requiredCpuLimit != cpuLimit
-          requiredMemoryLimit != memLimit
-          requiredCpuRequest != cpuRequest
-          requiredMemoryRequest != memRequest
+          any([
+            cpuLimit != resource_values.cpuLimit,
+            memLimit != resource_values.memLimit,
+            cpuRequest != resource_values.cpuRequest,
+            memRequest != resource_values.memRequest
+          ])
 
-          size := resource_size(input.parameters.cpuLimit, input.parameters.memLimit, input.parameters.cpuRequest, input.parameters.memRequest)
           msg := sprintf("Must use %s image with %s resource size", [input.parameters.image_name, size])
         }

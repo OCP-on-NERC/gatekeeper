@@ -14,7 +14,4 @@ spec:
   parameters:
     image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/ucsls-f24:latest"
     image_name: "ucsls-F24"
-    cpuLimit: "2"
-    memLimit: "8Gi"
-    cpuRequest: "1"
-    memRequest: "8Gi"
+    resource_size: "Small"
