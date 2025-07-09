@@ -19,16 +19,18 @@ spec:
                     type: string
                   name:
                     type: string
-                required: ["image", "name"]
-            resource_size:
-              type: string
-              enum: ["X Small", "Small", "Medium", "Large", "X Large"]
+                  resource_size:
+                    type: string
+                    enum: ["X Small", "Small", "Medium", "Large", "X Large"]
+                  gpu_count:
+                    type: integer
+                required: ["image", "name", "resource_size", "gpu_count"]
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
         package K8sRequiredOPEPod
 
-        # Function to get resource values based on size
+        # Function to get resource values based on size (string)
         get_resource_values(size) = values {
           size == "X Small"
           values := {
@@ -71,48 +73,54 @@ spec:
           }
         }
 
-        # Check if the provided image is in the allowed list
-        is_allowed_image(provided) {
-          allowed := input.parameters.allowed_images[_]
-          provided == allowed.image
+        # Find the image configuration for the provided image
+        find_image_config(provided) = config {
+          config := input.parameters.allowed_images[_]
+          provided == config.image
         }
 
-        # Get allowed image names for error message
-        get_allowed_image_names = names {
-          names := concat(", ", [img.name | img := input.parameters.allowed_images[_]])
-        }
-
-        # Verify class image
+        # Verify container image
         violation[{"msg": msg}] {
-          container := input.review.object.spec.containers[_]
+          container := input.review.object.spec.containers[0]
           env_var := container.env[_]
           env_var.name == "JUPYTER_IMAGE"
           provided := env_var.value
-          not is_allowed_image(provided)
+          not find_image_config(provided)
 
-          allowed_names := get_allowed_image_names
-          msg := sprintf("Must use one of these images: [%s] with %s resource size", [allowed_names, input.parameters.resource_size])
+          allowed_names := concat(", ", [sprintf("%s (%s resource size, %d GPUs)", [img.name, img.resource_size, img.gpu_count]) | img := input.parameters.allowed_images[_]])
+          msg := sprintf("Must use one of these images: [%s]", [allowed_names])
         }
 
-        # Verify resource size
+        # Validate resources
         violation[{"msg": msg}] {
-          size := input.parameters.resource_size
-          resource_values := get_resource_values(size)
-
           container := input.review.object.spec.containers[0]
+          env_var := container.env[_]
+          env_var.name == "JUPYTER_IMAGE"
+          provided := env_var.value
 
+          image_config := find_image_config(provided)
+          resource_values := get_resource_values(image_config.resource_size)
+          gpu_count := image_config.gpu_count
+
+          # Get actual resource values from container
           cpuLimit := container.resources.limits.cpu
           memLimit := container.resources.limits.memory
           cpuRequest := container.resources.requests.cpu
           memRequest := container.resources.requests.memory
+          actual_gpu_request := object.get(container.resources.requests, "nvidia.com/gpu", "0")
+          actual_gpu_limit := object.get(container.resources.limits, "nvidia.com/gpu", "0")
 
+          # Violation if any resource doesn't match the required values
           any([
             cpuLimit != resource_values.cpuLimit,
             memLimit != resource_values.memLimit,
             cpuRequest != resource_values.cpuRequest,
-            memRequest != resource_values.memRequest
+            memRequest != resource_values.memRequest,
+            actual_gpu_request != sprintf("%d", [gpu_count]),
+            actual_gpu_limit != sprintf("%d", [gpu_count])
           ])
 
-          allowed_names := get_allowed_image_names
-          msg := sprintf("Must use one of these images: [%s] with %s resource size", [allowed_names, size])
+          # Generate error message
+          allowed_names := concat(", ", [sprintf("%s (%s resource size, %d GPUs)", [img.name, img.resource_size, img.gpu_count]) | img := input.parameters.allowed_images[_]])
+          msg := sprintf("Must use one of these images: [%s]", [allowed_names])
         }
