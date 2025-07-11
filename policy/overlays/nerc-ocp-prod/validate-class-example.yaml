@@ -7,14 +7,18 @@ spec:
     kinds:
       - apiGroups: [""]
         kinds: ["Pod"]
-    namespaces: ["rhods-notebooks"]
-    labelSelector:
-      matchLabels:
-        nerc.mghpcc.org/class: fake_class
+    namespaces: ["ope-rhods-testing-1fef2f"]
+    # Removed labelSelector to match all pods, but we can add it back if needed for specific classes
+    # labelSelector:
+    #   matchLabels:
+    #     nerc.mghpcc.org/class: example_class
   parameters:
-    image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/ucsls-f24:latest"
-    image_name: "ucsls-F24"
-    cpuLimit: "2"
-    memLimit: "8Gi"
-    cpuRequest: "1"
-    memRequest: "8Gi"
+    allowed_images:
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/base-ope-image:latest"
+        name: "Base OPE Image"
+        resource_size: "X Small"
+        gpu_count: 0
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/ucsls-f24:latest"
+        name: "ucsls-F24"
+        resource_size: "Small"
+        gpu_count: 1
