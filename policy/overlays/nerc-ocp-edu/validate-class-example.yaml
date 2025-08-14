@@ -1,0 +1,24 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredOPEPod
+metadata:
+  name: validate-ope-pods
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces: ["ope-rhods-testing-1fef2f"]
+    # Removed labelSelector to match all pods, but we can add it back if needed for specific classes
+    # labelSelector:
+    #   matchLabels:
+    #     nerc.mghpcc.org/class: example_class
+  parameters:
+    allowed_images:
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/base-ope-image:latest"
+        name: "Base OPE Image"
+        resource_size: "X Small"
+        gpu_count: 0
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/ucsls-f24:latest"
+        name: "ucsls-F24"
+        resource_size: "Small"
+        gpu_count: 1
