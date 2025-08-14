@@ -1,0 +1,126 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredopepod
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredOPEPod
+      validation:
+        openAPIV3Schema:
+          properties:
+            allowed_images:
+              type: array
+              items:
+                type: object
+                properties:
+                  image:
+                    type: string
+                  name:
+                    type: string
+                  resource_size:
+                    type: string
+                    enum: ["X Small", "Small", "Medium", "Large", "X Large"]
+                  gpu_count:
+                    type: integer
+                required: ["image", "name", "resource_size", "gpu_count"]
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package K8sRequiredOPEPod
+
+        # Function to get resource values based on size (string)
+        get_resource_values(size) = values {
+          size == "X Small"
+          values := {
+            "cpuLimit": "1",
+            "memLimit": "4Gi",
+            "cpuRequest": "100m",
+            "memRequest": "1Gi"
+          }
+        } else = values {
+          size == "Small"
+          values := {
+            "cpuLimit": "2",
+            "memLimit": "8Gi",
+            "cpuRequest": "1",
+            "memRequest": "8Gi"
+          }
+        } else = values {
+          size == "Medium"
+          values := {
+            "cpuLimit": "6",
+            "memLimit": "24Gi",
+            "cpuRequest": "3",
+            "memRequest": "24Gi"
+          }
+        } else = values {
+          size == "Large"
+          values := {
+            "cpuLimit": "14",
+            "memLimit": "56Gi",
+            "cpuRequest": "7",
+            "memRequest": "56Gi"
+          }
+        } else = values {
+          size == "X Large"
+          values := {
+            "cpuLimit": "30",
+            "memLimit": "120Gi",
+            "cpuRequest": "15",
+            "memRequest": "120Gi"
+          }
+        }
+
+        # Find the image configuration for the provided image
+        find_image_config(provided) = config {
+          config := input.parameters.allowed_images[_]
+          provided == config.image
+        }
+
+        # Verify container image
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[0]
+          env_var := container.env[_]
+          env_var.name == "JUPYTER_IMAGE"
+          provided := env_var.value
+          not find_image_config(provided)
+
+          allowed_names := concat(", ", [sprintf("%s (%s resource size, %d GPUs)", [img.name, img.resource_size, img.gpu_count]) | img := input.parameters.allowed_images[_]])
+          msg := sprintf("Must use one of these images: [%s]", [allowed_names])
+        }
+
+        # Validate resources
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[0]
+          env_var := container.env[_]
+          env_var.name == "JUPYTER_IMAGE"
+          provided := env_var.value
+
+          image_config := find_image_config(provided)
+          resource_values := get_resource_values(image_config.resource_size)
+          gpu_count := image_config.gpu_count
+
+          # Get actual resource values from container
+          cpuLimit := container.resources.limits.cpu
+          memLimit := container.resources.limits.memory
+          cpuRequest := container.resources.requests.cpu
+          memRequest := container.resources.requests.memory
+          actual_gpu_request := object.get(container.resources.requests, "nvidia.com/gpu", "0")
+          actual_gpu_limit := object.get(container.resources.limits, "nvidia.com/gpu", "0")
+
+          # Violation if any resource doesn't match the required values
+          any([
+            cpuLimit != resource_values.cpuLimit,
+            memLimit != resource_values.memLimit,
+            cpuRequest != resource_values.cpuRequest,
+            memRequest != resource_values.memRequest,
+            actual_gpu_request != sprintf("%d", [gpu_count]),
+            actual_gpu_limit != sprintf("%d", [gpu_count])
+          ])
+
+          # Generate error message
+          allowed_names := concat(", ", [sprintf("%s (%s resource size, %d GPUs)", [img.name, img.resource_size, img.gpu_count]) | img := input.parameters.allowed_images[_]])
+          msg := sprintf("Must use one of these images: [%s]", [allowed_names])
+        }
