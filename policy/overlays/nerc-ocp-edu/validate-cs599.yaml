@@ -1,0 +1,36 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredOPEPod
+metadata:
+  name: validate-cs599
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces:
+      - bu-cs599-pmpp-cuda-009072
+      - bu-cs599-pmpp-cuda-02cef1
+      - bu-cs599-pmpp-cuda-25982c
+      - bu-cs599-pmpp-cuda-277b9f
+      - bu-cs599-pmpp-cuda-51774f
+      - bu-cs599-pmpp-cuda-6c4474
+      - bu-cs599-pmpp-cuda-6f6641
+      - bu-cs599-pmpp-cuda-71cd48
+      - bu-cs599-pmpp-cuda-7a0d8c
+      - bu-cs599-pmpp-cuda-a2a5b8
+      - bu-cs599-pmpp-cuda-aac92e
+      - bu-cs599-pmpp-cuda-b5e756
+      - bu-cs599-pmpp-cuda-c115ca
+      - bu-cs599-pmpp-cuda-cc7c3a
+      - bu-cs599-pmpp-cuda-d82b35
+      - bu-cs599-pmpp-cuda-dccf3b
+      - bu-cs599-pmpp-cuda-dd740c
+      - bu-cs599-pmpp-cuda-e93be9
+      - bu-cs599-pmpp-cuda-f1fa22
+      - bu-cs599-pmpp-cuda-f338dc
+  parameters:
+    allowed_images:
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/csw-dev-f25:latest"
+        name: "csw-dev-F25"
+        resource_size: "Small"
+        gpu_count: 0
