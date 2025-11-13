@@ -14,6 +14,16 @@ patches:
       - op: remove
         path: /spec/template/spec/containers/0/securityContext/runAsUser
   - target:
+      kind: Deployment
+      name: gatekeeper-audit
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 1Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 1Gi
+  - target:
       kind: Role
       name: gatekeeper-manager-role
     patch: |
