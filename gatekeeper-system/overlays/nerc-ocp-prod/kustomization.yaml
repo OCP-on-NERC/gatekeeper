@@ -14,8 +14,8 @@ patches:
         name: gatekeeper-system
         labels:
           pod-security.kubernetes.io/audit: baseline
-          pod-security.kubernetes.io/audit-version: v1.24
+          pod-security.kubernetes.io/audit-version: v1.32
           pod-security.kubernetes.io/enforce: restricted
-          pod-security.kubernetes.io/enforce-version: v1.24
+          pod-security.kubernetes.io/enforce-version: v1.32
           pod-security.kubernetes.io/warn: baseline
-          pod-security.kubernetes.io/warn-version: v1.24
+          pod-security.kubernetes.io/warn-version: v1.32
