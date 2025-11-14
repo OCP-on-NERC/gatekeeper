@@ -2,3 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - routes-use-tls.yaml
+- validate-ope-pods-constrainttemplate.yaml
+- validate-cs210.yaml
+- validate-cs599.yaml
