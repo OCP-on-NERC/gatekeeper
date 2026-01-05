@@ -6,3 +6,4 @@ resources:
 - validate-ope-pods-constrainttemplate.yaml
 - validate-cs210.yaml
 - validate-cs599.yaml
+- validate-dsp562.yaml

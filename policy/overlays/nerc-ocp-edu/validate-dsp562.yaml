@@ -1,0 +1,19 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredOPEPod
+metadata:
+  name: validate-dsp562
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces: ["rhods-notebooks"]
+    labelSelector:
+      matchLabels:
+        nerc.mghpcc.org/class: dsp562
+  parameters:
+    allowed_images:
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:2025.1"
+        name: "Standard Data Science"
+        resource_size: "Small"
+        gpu_count: 0
