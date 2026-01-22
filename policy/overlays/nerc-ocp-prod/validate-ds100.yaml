@@ -1,0 +1,19 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredOPEPod
+metadata:
+  name: validate-ds100
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces: ["rhods-notebooks"]
+    labelSelector:
+      matchLabels:
+        nerc.mghpcc.org/class: ds100
+  parameters:
+    allowed_images:
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/s2i-generic-data-science-notebook:2025.1"
+        name: "Standard Data Science"
+        resource_size: "X Small"
+        gpu_count: 0

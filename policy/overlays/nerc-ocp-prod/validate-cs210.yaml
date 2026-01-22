@@ -1,0 +1,19 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredOPEPod
+metadata:
+  name: validate-cs210
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaces: ["rhods-notebooks"]
+    labelSelector:
+      matchLabels:
+        nerc.mghpcc.org/class: cs210
+  parameters:
+    allowed_images:
+      - image: "image-registry.openshift-image-registry.svc:5000/redhat-ods-applications/ucsls-f24:latest"
+        name: "ucsls-F24"
+        resource_size: "X Small"
+        gpu_count: 0
